@@ -1,0 +1,5 @@
+include ':provider-annotations', ':provider-compiler', ':provider-runtime', ':provider-builder'
+
+//include ':sample:app'
+//include ':sample:common'
+//include ':sample:some_service'

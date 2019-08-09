@@ -1,0 +1,18 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation project(":provider-annotations")
+    implementation depends.auto.common
+    implementation depends.javapoet
+    compileOnly depends.auto.service
+    annotationProcessor depends.auto.service
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+apply from: rootProject.file('gradle/gradle-mvn-upload.gradle')

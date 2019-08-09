@@ -1,0 +1,53 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext.versions = [
+            'minSdkVersion'    : 14,
+            'compileSdkVersion': 29,
+            'buildToolsVersion': "29.0.0",
+            'targetSdkVersion' : 29,
+            'release'          : '0.1.0'
+    ]
+    ext.depends = [
+            'junit'   : 'junit:junit:4.12',
+            'androidx': [
+                    'annotations': "androidx.annotation:annotation:1.0.0",
+                    'appcompat'  : 'androidx.appcompat:appcompat:1.0.2',
+                    'test'       : [
+                            'runner'  : 'androidx.test:runner:1.2.0',
+                            'espresso': 'androidx.test.espresso:espresso-core:3.2.0'
+                    ]
+            ],
+            javapoet  : 'com.squareup:javapoet:1.10.0',
+            'auto'    : [
+                    'service': 'com.google.auto.service:auto-service:1.0-rc4',
+                    'common' : 'com.google.auto:auto-common:0.10'
+            ],
+            'release' : [
+                    'runtime' : "com.github.tablebird:service-provider-builder:${versions.release}",
+                    'compiler': "com.github.tablebird:service-provider-builder-compiler:${versions.release}"
+            ]
+    ]
+
+    repositories {
+        google()
+        jcenter()
+
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.4.2'
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
