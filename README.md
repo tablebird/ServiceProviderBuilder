@@ -20,6 +20,15 @@ dependencies {
     annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
 }
 ```
+如果使用**Kotlin**则添加：
+```groovy
+apply plugin: 'kotlin-kapt'
+dependencies {
+	...
+	implementation 'com.github.tablebird:service-provider-builder:0.1.0'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
+}
+```
 
 ### 示例代码
 
@@ -33,6 +42,7 @@ public interface IService {
 `ServiceProviderPolicy.SINGLE`代表服务的实现是唯一的，不允许存在多个，默认使用`ServiceProviderPolicy.MULTIPLE`允许多个实例
 
 #### 服务具体实现（具体业务模块）
+**Java**
 ```java
 @ServiceImplementation
 class Service implements IService {
@@ -47,6 +57,23 @@ class Service implements IService {
         return name;
     }
 ```
+**Kotlin**
+```kotlin
+@ServiceImplementation
+internal Service private constructor() : IService {
+    companion object {
+        @BuildService
+        @JvmStatic
+        fun getInstance() = Holder.INSTANCE
+    }
+
+    private object Holder {
+        val INSTANCE = Service()
+    }
+}
+```
+
+
 服务的构建会优先寻找`@BuildService`指定的静态方法，如果未指定则会使用构造函数
 服务的实现建议使非公开的，避免直接被外部引用，构建器会负责找到服务的实现
 

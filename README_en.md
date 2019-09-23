@@ -11,11 +11,20 @@ Implementation of Service Interface Based on SPI (Service Provider Interface),Ge
 
 ### Installation
 
-First,add following code in  `build.gradle` of you projcet module：
+First,add following code in  `build.gradle` of you project module：
 ```groovy
 dependencies {
     implementation 'com.github.tablebird:service-provider-builder:0.1.0'
     annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
+}
+```
+Add if **Kotlin** is used：
+```groovy
+apply plugin: 'kotlin-kapt'
+dependencies {
+	...
+	implementation 'com.github.tablebird:service-provider-builder:0.1.0'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
 }
 ```
 
@@ -31,6 +40,8 @@ public interface IService {
 `ServiceProviderPolicy.SINGLE` represents the implementation of the service is unique, not allowed to exist multiple, by default using `ServiceProviderPolicy.MULTIPLE` allows multiple instances
 
 #### Service implementation（Business module）
+**Java**
+
 ```java
 @ServiceImplementation
 class Service implements IService {
@@ -45,6 +56,23 @@ class Service implements IService {
         return name;
     }
 ```
+
+**Kotlin**
+```kotlin
+@ServiceImplementation
+internal Service private constructor() : IService {
+    companion object {
+        @BuildService
+        @JvmStatic
+        fun getInstance() = Holder.INSTANCE
+    }
+
+    private object Holder {
+        val INSTANCE = Service()
+    }
+}
+```
+
 The service build will first look for the static method specified by `@BuildService`, if not specified, the constructor will be used.
 The implementation of the service is recommended to be non-public, avoiding direct external references, and the builder will be responsible for finding the implementation of the service.
 
