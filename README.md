@@ -16,8 +16,8 @@
 在模块的`build.gradle`添加：
 ```groovy
 dependencies {
-    implementation 'com.github.tablebird:service-provider-builder:0.1.0'
-    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
+    implementation 'com.github.tablebird:service-provider-builder:0.1.1'
+    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
 }
 ```
 如果使用**Kotlin**则添加：
@@ -25,8 +25,8 @@ dependencies {
 apply plugin: 'kotlin-kapt'
 dependencies {
 	...
-	implementation 'com.github.tablebird:service-provider-builder:0.1.0'
-	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.0'
+	implementation 'com.github.tablebird:service-provider-builder:0.1.1'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
 }
 ```
 

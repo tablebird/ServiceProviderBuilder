@@ -6,7 +6,7 @@ buildscript {
             'compileSdkVersion': 29,
             'buildToolsVersion': "29.0.0",
             'targetSdkVersion' : 29,
-            'release'          : '0.1.0'
+            'release'          : '0.1.1'
     ]
     ext.depends = [
             'junit'   : 'junit:junit:4.12',

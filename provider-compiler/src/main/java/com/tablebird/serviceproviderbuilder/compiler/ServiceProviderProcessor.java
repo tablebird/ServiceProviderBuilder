@@ -248,7 +248,7 @@ public class ServiceProviderProcessor extends AbstractProcessor {
         }
         boolean hasServiceProvider = false;
         for (TypeMirror typeMirror : typeElementInterfaces) {
-            if (typeMirror.getKind() == TypeKind.DECLARED) {
+            if (!hasServiceProvider && typeMirror.getKind() == TypeKind.DECLARED) {
                 if (typeMirror instanceof DeclaredType) {
                     Element asElement = ((DeclaredType) typeMirror).asElement();
                     ServiceProvider serviceProvider = asElement.getAnnotation(ServiceProvider.class);
