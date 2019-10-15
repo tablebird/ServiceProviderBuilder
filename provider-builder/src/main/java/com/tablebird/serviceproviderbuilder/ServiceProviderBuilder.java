@@ -79,7 +79,12 @@ public class ServiceProviderBuilder {
     private static <S> Iterator<S> getServiceIterator(Class<S> service, ServiceProviderPolicy providerPolicy) {
         String serviceName = service.getName();
         if (mServiceBuilderMap.containsKey(serviceName)) {
-            return getIterator(service, mServiceBuilderMap.get(serviceName));
+            Set<? extends ServiceBuilder> serviceBuilders = mServiceBuilderMap.get(serviceName);
+            if (serviceBuilders == null || serviceBuilders.isEmpty()) {
+                mServiceBuilderMap.remove(serviceName);
+            } else {
+                return getIterator(service, serviceBuilders);
+            }
         }
 
         ServiceBuilderLoader<S> serviceBuilderLoader = ServiceBuilderLoader.load(service);
@@ -98,7 +103,9 @@ public class ServiceProviderBuilder {
             serviceAchieveNames.replace(serviceAchieveNames.length() - 2, serviceAchieveNames.length(), "]");
             throw new BuilderInstantiationException(String.format("%s policy is single, but service achieve not single : %s ", service.getSimpleName(), serviceAchieveNames.toString()));
         }
-        mServiceBuilderMap.put(serviceName, serviceBuilders);
+        if (!serviceBuilders.isEmpty()) {
+            mServiceBuilderMap.put(serviceName, serviceBuilders);
+        }
         return getIterator(service, serviceBuilders);
     }
 
