@@ -3,7 +3,11 @@ package com.tablebird.serviceproviderbuilder;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Service build for android service provider interface. Use this class to simplify build service
@@ -53,11 +57,26 @@ public class ServiceProviderBuilder {
      */
     @Nullable
     public static <S> S buildSingleService(Class<S> service) {
+        return buildSingleService(service, Thread.currentThread().getContextClassLoader());
+    }
+
+    /**
+     * Build policy is the implementation of single service provider
+     *
+     * @param service single service provider class
+     * @param <S>     single service provider
+     * @param classLoader The class loader to be used to load providerBuilder-configuration files and provider classes
+     * @return service provider implementation
+     * @throws java.lang.IllegalArgumentException service provider policy not single
+     * @throws BuilderInstantiationException      service provider policy is single, but service implementation not single
+     */
+    @Nullable
+    public static <S> S buildSingleService(Class<S> service, ClassLoader classLoader) {
         ServiceProviderPolicy providerPolicy = getServiceProviderPolicy(service);
         if (providerPolicy != ServiceProviderPolicy.SINGLE) {
             throw new IllegalArgumentException(String.format("%s not single policy", service.getSimpleName()));
         }
-        Iterator<S> sIterator = getServiceIterator(service, providerPolicy);
+        Iterator<S> sIterator = getServiceIterator(service, providerPolicy, classLoader);
         return sIterator.hasNext() ? sIterator.next() : null;
     }
 
@@ -71,12 +90,28 @@ public class ServiceProviderBuilder {
      */
     @NonNull
     public static <S> Iterator<S> buildServiceSet(Class<S> service) {
+        return buildServiceSet(service, Thread.currentThread().getContextClassLoader());
+    }
+
+    /**
+     * Build implementation of service provider
+     *
+     * @param service service provider class
+     * @param <S>     service provider
+     * @param classLoader The class loader to be used to load providerBuilder-configuration files and provider classes
+     * @return iterator of service provider implementation
+     * @throws BuilderInstantiationException service provider policy is single, but service implementation not single
+     */
+    @NonNull
+    public static <S> Iterator<S> buildServiceSet(Class<S> service, ClassLoader classLoader) {
         ServiceProviderPolicy providerPolicy = getServiceProviderPolicy(service);
-        return getServiceIterator(service, providerPolicy);
+        return getServiceIterator(service, providerPolicy, classLoader);
     }
 
     @NonNull
-    private static <S> Iterator<S> getServiceIterator(Class<S> service, ServiceProviderPolicy providerPolicy) {
+    private static <S> Iterator<S> getServiceIterator(Class<S> service,
+                                                      ServiceProviderPolicy providerPolicy,
+                                                      ClassLoader classLoader) {
         String serviceName = service.getName();
         if (mServiceBuilderMap.containsKey(serviceName)) {
             Set<? extends ServiceBuilder> serviceBuilders = mServiceBuilderMap.get(serviceName);
@@ -87,7 +122,11 @@ public class ServiceProviderBuilder {
             }
         }
 
-        ServiceBuilderLoader<S> serviceBuilderLoader = ServiceBuilderLoader.load(service);
+        if (classLoader == null) {
+            classLoader = service.getClassLoader();
+        }
+
+        ServiceBuilderLoader<S> serviceBuilderLoader = ServiceBuilderLoader.load(service, classLoader);
         Iterator<ServiceBuilder<S>> builderServiceIterator = serviceBuilderLoader.iterator();
         Set<ServiceBuilder<S>> serviceBuilders = new HashSet<>();
         while (builderServiceIterator.hasNext()) {
