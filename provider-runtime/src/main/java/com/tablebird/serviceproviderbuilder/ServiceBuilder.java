@@ -7,5 +7,5 @@ import androidx.annotation.NonNull;
  */
 public interface ServiceBuilder<S> {
     @NonNull
-    S load();
+    S build();
 }

@@ -1,4 +1,17 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
+
+    dependencies {
+        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:${versions.release}"
+    }
+}
+
 apply plugin: 'com.android.application'
+apply plugin: 'com.github.tablebird.serviceproviderbuilder'
 
 android {
     compileSdkVersion versions.compileSdkVersion

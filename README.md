@@ -16,8 +16,8 @@
 在模块的`build.gradle`添加：
 ```groovy
 dependencies {
-    implementation 'com.github.tablebird:service-provider-builder:0.1.1'
-    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
+    implementation 'com.github.tablebird:service-provider-builder:0.2.0'
+    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
 }
 ```
 如果使用**Kotlin**则添加：
@@ -25,9 +25,24 @@ dependencies {
 apply plugin: 'kotlin-kapt'
 dependencies {
 	...
-	implementation 'com.github.tablebird:service-provider-builder:0.1.1'
-	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
+	implementation 'com.github.tablebird:service-provider-builder:0.2.0'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
 }
+```
+在**application**模块`build.gradle`前添加如下代码可以在编译期提前注册`ServiceBuilder`加快运行速度：
+```groovy
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
+
+    dependencies {
+        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.0"
+    }
+}
+apply plugin: 'com.github.tablebird.serviceproviderbuilder'
 ```
 
 ### 示例代码
@@ -97,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
 
 ### 混淆问题
 
-需要添加如下内容：
+需要添加如下内容(使用`apply plugin: 'com.github.tablebird.serviceproviderbuilder'` 后代码可以进行代码混淆，无需添加如下忽略)：
 ```proguard
 -keep class com.tablebird.serviceproviderbuilder.*
 -keep public class * extends com.tablebird.serviceproviderbuilder.ServiceBuilder{

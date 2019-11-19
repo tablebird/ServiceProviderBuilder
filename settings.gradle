@@ -1,4 +1,4 @@
-include ':provider-annotations', ':provider-compiler', ':provider-runtime', ':provider-builder'
+include ':provider-annotations', ':provider-compiler', ':provider-runtime', ':provider-builder', ':provider-gradle-plugin'
 
 //include ':sample:app'
 //include ':sample:common'

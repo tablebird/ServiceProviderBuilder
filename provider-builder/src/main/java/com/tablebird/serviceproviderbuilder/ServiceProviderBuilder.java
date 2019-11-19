@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class ServiceProviderBuilder {
 
-    private static final Map<String, Set<? extends ServiceBuilder>> mServiceBuilderMap = new HashMap<>();
+    private static final Map<Class<?>, Set<? extends ServiceBuilder>> mServiceBuilderMap = new HashMap<>();
 
     private ServiceProviderBuilder() {
         throw new AssertionError("No instances.");
@@ -56,22 +56,22 @@ public class ServiceProviderBuilder {
      * @throws BuilderInstantiationException      service provider policy is single, but service implementation not single
      */
     @Nullable
-    public static <S> S buildSingleService(Class<S> service) {
+    public static <S> S buildSingleService(@NonNull Class<S> service) {
         return buildSingleService(service, Thread.currentThread().getContextClassLoader());
     }
 
     /**
      * Build policy is the implementation of single service provider
      *
-     * @param service single service provider class
-     * @param <S>     single service provider
+     * @param service     single service provider class
+     * @param <S>         single service provider
      * @param classLoader The class loader to be used to load providerBuilder-configuration files and provider classes
      * @return service provider implementation
      * @throws java.lang.IllegalArgumentException service provider policy not single
      * @throws BuilderInstantiationException      service provider policy is single, but service implementation not single
      */
     @Nullable
-    public static <S> S buildSingleService(Class<S> service, ClassLoader classLoader) {
+    public static <S> S buildSingleService(@NonNull Class<S> service, ClassLoader classLoader) {
         ServiceProviderPolicy providerPolicy = getServiceProviderPolicy(service);
         if (providerPolicy != ServiceProviderPolicy.SINGLE) {
             throw new IllegalArgumentException(String.format("%s not single policy", service.getSimpleName()));
@@ -89,50 +89,52 @@ public class ServiceProviderBuilder {
      * @throws BuilderInstantiationException service provider policy is single, but service implementation not single
      */
     @NonNull
-    public static <S> Iterator<S> buildServiceSet(Class<S> service) {
+    public static <S> Iterator<S> buildServiceSet(@NonNull Class<S> service) {
         return buildServiceSet(service, Thread.currentThread().getContextClassLoader());
     }
 
     /**
      * Build implementation of service provider
      *
-     * @param service service provider class
-     * @param <S>     service provider
+     * @param service     service provider class
+     * @param <S>         service provider
      * @param classLoader The class loader to be used to load providerBuilder-configuration files and provider classes
      * @return iterator of service provider implementation
      * @throws BuilderInstantiationException service provider policy is single, but service implementation not single
      */
     @NonNull
-    public static <S> Iterator<S> buildServiceSet(Class<S> service, ClassLoader classLoader) {
+    public static <S> Iterator<S> buildServiceSet(@NonNull Class<S> service, ClassLoader classLoader) {
         ServiceProviderPolicy providerPolicy = getServiceProviderPolicy(service);
         return getServiceIterator(service, providerPolicy, classLoader);
     }
 
     @NonNull
-    private static <S> Iterator<S> getServiceIterator(Class<S> service,
+    private static <S> Iterator<S> getServiceIterator(@NonNull Class<S> service,
                                                       ServiceProviderPolicy providerPolicy,
                                                       ClassLoader classLoader) {
-        String serviceName = service.getName();
-        if (mServiceBuilderMap.containsKey(serviceName)) {
-            Set<? extends ServiceBuilder> serviceBuilders = mServiceBuilderMap.get(serviceName);
+        if (mServiceBuilderMap.containsKey(service)) {
+            Set<? extends ServiceBuilder> serviceBuilders = mServiceBuilderMap.get(service);
             if (serviceBuilders == null || serviceBuilders.isEmpty()) {
-                mServiceBuilderMap.remove(serviceName);
+                mServiceBuilderMap.remove(service);
             } else {
                 return getIterator(service, serviceBuilders);
             }
         }
+        Set<ServiceBuilder> serviceBuilders = ServiceBuilderRegistry.get(service);
 
-        if (classLoader == null) {
-            classLoader = service.getClassLoader();
+        if (serviceBuilders == null) {
+            serviceBuilders = loadServiceBuilders(service, classLoader);
         }
 
-        ServiceBuilderLoader<S> serviceBuilderLoader = ServiceBuilderLoader.load(service, classLoader);
-        Iterator<ServiceBuilder<S>> builderServiceIterator = serviceBuilderLoader.iterator();
-        Set<ServiceBuilder<S>> serviceBuilders = new HashSet<>();
-        while (builderServiceIterator.hasNext()) {
-            serviceBuilders.add(builderServiceIterator.next());
-        }
+        checkProviderPolicy(service, providerPolicy, serviceBuilders);
 
+        if (!serviceBuilders.isEmpty()) {
+            mServiceBuilderMap.put(service, serviceBuilders);
+        }
+        return getIterator(service, serviceBuilders);
+    }
+
+    private static <S> void checkProviderPolicy(@NonNull Class<S> service, ServiceProviderPolicy providerPolicy, Set<ServiceBuilder> serviceBuilders) {
         if (providerPolicy == ServiceProviderPolicy.SINGLE && serviceBuilders.size() > 1) {
             StringBuilder serviceAchieveNames = new StringBuilder("[");
             for (ServiceBuilder serviceBuilder : serviceBuilders) {
@@ -142,10 +144,21 @@ public class ServiceProviderBuilder {
             serviceAchieveNames.replace(serviceAchieveNames.length() - 2, serviceAchieveNames.length(), "]");
             throw new BuilderInstantiationException(String.format("%s policy is single, but service achieve not single : %s ", service.getSimpleName(), serviceAchieveNames.toString()));
         }
-        if (!serviceBuilders.isEmpty()) {
-            mServiceBuilderMap.put(serviceName, serviceBuilders);
+    }
+
+    private static <S> Set<ServiceBuilder> loadServiceBuilders(@NonNull Class<S> service, ClassLoader classLoader) {
+        Set<ServiceBuilder> serviceBuilders;
+        if (classLoader == null) {
+            classLoader = service.getClassLoader();
         }
-        return getIterator(service, serviceBuilders);
+
+        ServiceBuilderLoader<S> serviceBuilderLoader = ServiceBuilderLoader.load(service, classLoader);
+        Iterator<ServiceBuilder<S>> builderServiceIterator = serviceBuilderLoader.iterator();
+        serviceBuilders = new HashSet<>();
+        while (builderServiceIterator.hasNext()) {
+            serviceBuilders.add(builderServiceIterator.next());
+        }
+        return serviceBuilders;
     }
 
     @NonNull
@@ -173,7 +186,7 @@ public class ServiceProviderBuilder {
 
             @Override
             public S next() {
-                return mIterator != null ? service.cast(mIterator.next().load()) : null;
+                return mIterator != null ? service.cast(mIterator.next().build()) : null;
             }
         };
     }

@@ -14,8 +14,8 @@ Implementation of Service Interface Based on SPI (Service Provider Interface),Ge
 First,add following code in  `build.gradle` of you project module：
 ```groovy
 dependencies {
-    implementation 'com.github.tablebird:service-provider-builder:0.1.1'
-    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
+    implementation 'com.github.tablebird:service-provider-builder:0.2.0'
+    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
 }
 ```
 Add if **Kotlin** is used：
@@ -23,11 +23,25 @@ Add if **Kotlin** is used：
 apply plugin: 'kotlin-kapt'
 dependencies {
 	...
-	implementation 'com.github.tablebird:service-provider-builder:0.1.1'
-	kapt 'com.github.tablebird:service-provider-builder-compiler:0.1.1'
+	implementation 'com.github.tablebird:service-provider-builder:0.2.0'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
 }
 ```
+Add the following code before the **application** module `build.gradle` to register the `ServiceBuilder` in advance at compile time to speed up:
+```groovy
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
 
+    dependencies {
+        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.0"
+    }
+}
+apply plugin: 'com.github.tablebird.serviceproviderbuilder'
+```
 ### Tutorial
 
 #### Service provider interface define（Common module）
@@ -96,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
 ### proguard
 
-Add following code in proguard file：
+Add following code in proguard file(**application** moule apply serviceproviderbuilder plugin can ignore )：
 ```proguard
 -keep class com.tablebird.serviceproviderbuilder.*
 -keep public class * extends com.tablebird.serviceproviderbuilder.ServiceBuilder{

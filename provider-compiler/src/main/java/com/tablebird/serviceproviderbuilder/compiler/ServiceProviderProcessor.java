@@ -11,19 +11,34 @@ import com.tablebird.serviceproviderbuilder.ServiceImplementation;
 import com.tablebird.serviceproviderbuilder.ServiceProvider;
 import com.tablebird.serviceproviderbuilder.ServiceProviderPolicy;
 
-import javax.annotation.processing.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.annotation.Annotation;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.Messager;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.annotation.Annotation;
-import java.util.*;
 
 /**
  * @author tablebird
@@ -163,18 +178,19 @@ public class ServiceProviderProcessor extends AbstractProcessor {
                 error(typeElement, "%s can't be private ", ServiceImplementation.class.getSimpleName());
                 throw new RuntimeException("ServiceImplementation can't be private");
             }
-            if (!checkInterfaces(typeElement)) {
+            HashSet<Element> serviceProviderElements = new HashSet<>();
+            if (!checkInterfaces(serviceProviderElements, typeElement)) {
                 warning(typeElement, "%s not implement annotated %s interfaces", ServiceImplementation.class.getSimpleName(), ServiceProvider.class.getSimpleName());
                 continue;
             }
-            if (!parseBuilderService(typeElementServiceMap, typeElement)) {
+            if (!parseBuilderService(typeElementServiceMap, serviceProviderElements, typeElement)) {
                 throw new RuntimeException("find service fail");
             }
         }
         return typeElementServiceMap;
     }
 
-    private boolean parseBuilderService(Map<TypeElement, BuilderJava> typeElementServiceMap, TypeElement typeElement) {
+    private boolean parseBuilderService(Map<TypeElement, BuilderJava> typeElementServiceMap, HashSet<Element> serviceProviderElements, TypeElement typeElement) {
         List<? extends Element> enclosedElements = typeElement.getEnclosedElements();
         if (enclosedElements == null) {
             return false;
@@ -209,7 +225,7 @@ public class ServiceProviderProcessor extends AbstractProcessor {
             error(typeElement, "%s can not builder", ServiceImplementation.class.getSimpleName());
             return false;
         }
-        BuilderJava.Builder builder = BuilderJava.newBuilder(typeElement);
+        BuilderJava.Builder builder = BuilderJava.newBuilder(typeElement, serviceProviderElements);
         if (builderElement != null) {
             builder.setConstructor(false);
             builder.setMethod(builderElement.getSimpleName().toString());
@@ -241,22 +257,24 @@ public class ServiceProviderProcessor extends AbstractProcessor {
         return true;
     }
 
-    private boolean checkInterfaces(TypeElement typeElement) {
+    private boolean checkInterfaces(HashSet<Element> serviceProviders, TypeElement typeElement) {
         List<? extends TypeMirror> typeElementInterfaces = typeElement.getInterfaces();
         if (typeElementInterfaces == null) {
             return false;
         }
-        boolean hasServiceProvider = false;
         for (TypeMirror typeMirror : typeElementInterfaces) {
-            if (!hasServiceProvider && typeMirror.getKind() == TypeKind.DECLARED) {
+            if (typeMirror.getKind() == TypeKind.DECLARED) {
                 if (typeMirror instanceof DeclaredType) {
                     Element asElement = ((DeclaredType) typeMirror).asElement();
                     ServiceProvider serviceProvider = asElement.getAnnotation(ServiceProvider.class);
-                    hasServiceProvider = serviceProvider != null;
+                    if (serviceProvider != null) {
+                        serviceProviders.add(asElement);
+                    }
                 }
             }
         }
-        return hasServiceProvider;
+        debug("%s implementation provider %s", typeElement.getQualifiedName(), serviceProviders.toString());
+        return !serviceProviders.isEmpty();
     }
 
     private Set<TypeElement> getProviderInterfaces(TypeElement typeElement) {
