@@ -4,6 +4,7 @@ package com.tablebird.serviceproviderbuilder.plugin
 import com.android.build.api.transform.*
 import com.android.build.gradle.internal.pipeline.TransformManager
 import com.android.utils.FileUtils
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import java.io.*
 import java.util.jar.JarEntry
@@ -105,6 +106,8 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
                     jarOutputStream.write(streamToByte(jarFile.getInputStream(nextElement)))
                 }
             }
+        } catch (e: GradleException){
+            throw e
         } catch (e: Exception) {
             mProject.logger.error("registry service builder in jar fail: ${e.message}")
         } finally {
