@@ -9,7 +9,7 @@ import com.tablebird.serviceproviderbuilder.ServiceImplementation;
  * @date 2019/8/7
  */
 @ServiceImplementation
-class Service implements IService , TestInterface{
+class Service implements IService , TestInterface, IService.InnerService {
     private String name = "Build service";
     private static final Service INSTANCE = new Service();
 

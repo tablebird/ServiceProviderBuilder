@@ -158,7 +158,7 @@ final class BuilderJava {
             if (serviceProviderElement instanceof TypeElement) {
                 String serviceProviderPackageName = MoreElements.getPackage(serviceProviderElement).getQualifiedName().toString();
                 String serviceProviderClassName = ((TypeElement) serviceProviderElement).getQualifiedName().toString().substring(
-                        serviceProviderPackageName.length() + 1).replace('.', '$');
+                        serviceProviderPackageName.length() + 1);
                 serviceProviders.add(ClassName.get(serviceProviderPackageName, serviceProviderClassName));
             }
         }

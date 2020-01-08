@@ -11,4 +11,9 @@ import com.tablebird.serviceproviderbuilder.ServiceProviderPolicy;
 @ServiceProvider(ServiceProviderPolicy.SINGLE)
 public interface IService {
     String getName();
+
+    @ServiceProvider(ServiceProviderPolicy.SINGLE)
+    interface InnerService {
+
+    }
 }
