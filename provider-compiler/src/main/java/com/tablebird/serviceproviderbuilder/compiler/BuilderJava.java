@@ -159,6 +159,11 @@ final class BuilderJava {
                 String serviceProviderPackageName = MoreElements.getPackage(serviceProviderElement).getQualifiedName().toString();
                 String serviceProviderClassName = ((TypeElement) serviceProviderElement).getQualifiedName().toString().substring(
                         serviceProviderPackageName.length() + 1);
+                int innerIndex = serviceProviderClassName.indexOf(".");
+                if (innerIndex > -1 && innerIndex < serviceProviderClassName.length() - 1) {
+                    serviceProviderPackageName =  serviceProviderPackageName + "." + serviceProviderClassName.substring(0, innerIndex);
+                    serviceProviderClassName = serviceProviderClassName.substring(innerIndex + 1);
+                }
                 serviceProviders.add(ClassName.get(serviceProviderPackageName, serviceProviderClassName));
             }
         }

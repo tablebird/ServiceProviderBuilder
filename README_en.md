@@ -14,8 +14,8 @@ Implementation of Service Interface Based on SPI (Service Provider Interface),Ge
 First,add following code in  `build.gradle` of you project module：
 ```groovy
 dependencies {
-    implementation 'com.github.tablebird:service-provider-builder:0.2.0'
-    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
+    implementation 'com.github.tablebird:service-provider-builder:0.2.2'
+    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.2'
 }
 ```
 Add if **Kotlin** is used：
@@ -23,8 +23,8 @@ Add if **Kotlin** is used：
 apply plugin: 'kotlin-kapt'
 dependencies {
 	...
-	implementation 'com.github.tablebird:service-provider-builder:0.2.0'
-	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.0'
+	implementation 'com.github.tablebird:service-provider-builder:0.2.2'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.2'
 }
 ```
 Add the following code before the **application** module `build.gradle` to register the `ServiceBuilder` in advance at compile time to speed up:
@@ -37,7 +37,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.0"
+        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.2"
     }
 }
 apply plugin: 'com.github.tablebird.serviceproviderbuilder'
