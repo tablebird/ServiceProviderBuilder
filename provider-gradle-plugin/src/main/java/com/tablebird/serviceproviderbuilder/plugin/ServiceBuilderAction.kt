@@ -1,6 +1,5 @@
 package com.tablebird.serviceproviderbuilder.plugin
 
-import com.android.build.api.transform.Status
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import com.squareup.javapoet.CodeBlock
@@ -8,7 +7,6 @@ import com.tablebird.serviceproviderbuilder.*
 import javassist.ClassPool
 import javassist.CtClass
 import javassist.CtConstructor
-import javassist.Loader
 import javassist.bytecode.AnnotationsAttribute
 import javassist.bytecode.annotation.ArrayMemberValue
 import javassist.bytecode.annotation.ClassMemberValue
@@ -30,15 +28,11 @@ import kotlin.collections.LinkedHashSet
  */
 open class ServiceBuilderAction constructor(private val mProject: Project) {
 
-    private val mPool: ClassPool = object : ClassPool(true) {
-        override fun getClassLoader(): ClassLoader {
-            return Loader()
-        }
-    }
-
     companion object {
         const val CACHE_FILE_NAME = "ProviderClasses.txt"
     }
+
+    private lateinit var mPool : ServiceBuilderClassPool
 
     private val mBuilders = ArrayList<BuilderElement>()
 
@@ -47,6 +41,16 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
     private var mRegistryClass: CtClass? = null
     var mRegistryFilePath: String? = null
         private set
+
+    private fun reset() {
+        mPool = ServiceBuilderClassPool(true)
+        mBuilders.clear()
+        if (mRecordFile?.exists() == true) {
+            mRecordFile?.delete()
+        }
+        mRegistryClass = null
+        mRegistryFilePath = null
+    }
 
     fun setTempDir(dir: File) {
         mRecordFile = File(dir, CACHE_FILE_NAME)
@@ -63,19 +67,19 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
         }
     }
 
-    fun loadJar(jarFile: JarFile) : Boolean{
+    fun loadJar(jarFile: JarFile, change: Boolean = false) : Boolean{
         var findRegistry = false
         val entries = jarFile.entries()
         while (entries.hasMoreElements()) {
             val entry = entries.nextElement()
             if (entry.name.endsWith(".class")) {
-                findRegistry = maybeChangeByJar(jarFile, entry) || findRegistry
+                findRegistry = maybeChangeByJar(jarFile, entry, change) || findRegistry
             }
         }
         return findRegistry
     }
 
-    fun loadDirectory(file: File?): Boolean{
+    fun loadFile(file: File?, change: Boolean = false): Boolean{
         val stack = Stack<File>()
         stack.push(file)
         var findRegistry = false
@@ -86,36 +90,49 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
                     stack.push(childFile)
                 }
                 pop.name.endsWith(".class") -> {
-                    findRegistry = maybeChangeByFile(pop) || findRegistry
+                    findRegistry = maybeChangeByFile(pop, change) || findRegistry
                 }
                 pop.name.endsWith(".jar") -> {
                     val jarFile = JarFile(pop)
-                    findRegistry = loadJar(jarFile) || findRegistry
+                    findRegistry = loadJar(jarFile, change) || findRegistry
                 }
             }
         }
         return findRegistry
     }
 
-    fun loadChangedFiles(changedFiles: Map<File, Status>): Boolean{
-        var findRegistry = false
-        changedFiles.keys.forEach { file ->
-            mProject.logger.info("scan file:\t $file status:${changedFiles[file]}")
-            findRegistry = maybeChangeByFile(file, true) || findRegistry
+    fun removeJar(jarFile: JarFile) {
+        val entries = jarFile.entries()
+        while (entries.hasMoreElements()) {
+            val nextElement = entries.nextElement()
+            mPool.removeCached(nextElement.name)
         }
-        return findRegistry
+    }
+
+    fun removeFile(file: File) {
+        val default = ClassPool.getDefault()
+        val fileInputStream = FileInputStream(file)
+        val ctClass = default.makeClass(fileInputStream, false)
+        mPool.removeCached(ctClass.name)
     }
 
     private fun maybeChangeByFile(file: File, change: Boolean = false) : Boolean {
+        if (change) {
+            removeFile(file)
+        }
         val fileInputStream = FileInputStream(file)
-        val ctClass = mPool.makeClass(fileInputStream)
+        val ctClass = mPool.makeClass(fileInputStream, false)
         return maybeChangeByClass(ctClass, change)
     }
 
-    private fun maybeChangeByJar(jarFile: JarFile, jarEntry: JarEntry) : Boolean {
+    private fun maybeChangeByJar(jarFile: JarFile, jarEntry: JarEntry, change: Boolean = false) : Boolean {
+        if (change) {
+            mPool.removeCached(jarEntry.name)
+        }
         val stream: InputStream? = jarFile.getInputStream(jarEntry)
         return if (stream != null) {
-            val ctClass = mPool.makeClass(stream)
+            val ctClass = mPool.makeClass(stream, false)
+            stream.close()
             if (ServiceBuilderRegistry::class.java.name == ctClass.name) {
                 mRegistryClass = ctClass
                 mRegistryFilePath = jarEntry.name
@@ -255,5 +272,9 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
         }
         return builder.build()
 
+    }
+
+    fun clearCache() {
+        reset()
     }
 }

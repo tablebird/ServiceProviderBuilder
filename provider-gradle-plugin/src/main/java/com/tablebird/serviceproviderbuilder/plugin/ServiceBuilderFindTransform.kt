@@ -3,7 +3,7 @@ package com.tablebird.serviceproviderbuilder.plugin
 
 import com.android.build.api.transform.*
 import com.android.build.gradle.internal.pipeline.TransformManager
-import com.android.utils.FileUtils
+import org.apache.commons.io.FileUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import java.io.*
@@ -40,9 +40,13 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
 
     override fun transform(transformInvocation: TransformInvocation) {
         mProject.logger.info("==================================> Service builder start working <=======================================")
+        val incremental = transformInvocation.isIncremental
+        if (!incremental) {
+            mServiceBuilderAction.clearCache()
+            mRegistryQualifiedContent = null
+            mRegistryOutFile = null
+        }
         mServiceBuilderAction.setTempDir(transformInvocation.context.temporaryDir)
-        var destDir: File? = null
-        val classPaths = ArrayList<String>()
         transformInvocation.inputs.forEach { input ->
             input.jarInputs.forEach { jarInput ->
                 var jarName = jarInput.name
@@ -51,30 +55,59 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
                 }
                 val dest = transformInvocation.outputProvider
                     .getContentLocation(jarName, jarInput.contentTypes, jarInput.scopes, Format.JAR)
-                classPaths.add(dest.absolutePath)
-                if(mServiceBuilderAction.loadJar(JarFile(jarInput.file))) {
-                    mRegistryQualifiedContent = jarInput
-                    mRegistryOutFile = dest
+                if (incremental) {
+                    when(val status = jarInput.status) {
+                        Status.ADDED,
+                        Status.CHANGED -> {
+                            transformJar(jarInput, dest, status == Status.CHANGED)
+                        }
+                        Status.REMOVED -> {
+                            if (dest.exists()) {
+                                FileUtils.forceDelete(dest)
+                            }
+                            mServiceBuilderAction.removeJar(JarFile(jarInput.file))
+                        }
+                        else -> {
+                        }
+                    }
                 } else {
-                    FileUtils.copyFile(jarInput.file, dest)
-                    mProject.logger.info("scan file:\t ${jarInput.file} status:${jarInput.status}")
+                    transformJar(jarInput, dest)
                 }
             }
             input.directoryInputs.forEach { dirInput ->
-                val changedFiles: Map<File, Status>? = dirInput.changedFiles
-                destDir = transformInvocation.outputProvider.getContentLocation(
+                val destDir = transformInvocation.outputProvider.getContentLocation(
                     dirInput.name,
                     dirInput.contentTypes,
                     dirInput.scopes,
                     Format.DIRECTORY
                 )
-                classPaths.add(destDir!!.absolutePath)
-                if (changedFiles?.isNotEmpty() == true) {
-                    mServiceBuilderAction.loadChangedFiles(changedFiles)
+                FileUtils.forceMkdir(destDir)
+                if (incremental) {
+                    val srcDirPath: String = dirInput.file.absolutePath
+                    val destDirPath: String = destDir.absolutePath
+                    dirInput.changedFiles?.forEach { inputFile, status ->
+                        val replace = inputFile.absolutePath.replace(srcDirPath, destDirPath)
+                        val destFile  = File(replace)
+                        when (status) {
+                            Status.ADDED,
+                            Status.CHANGED -> {
+                                FileUtils.touch(destFile)
+                                transformFile(inputFile, destFile, status == Status.CHANGED)
+                            }
+                            Status.REMOVED -> {
+                                mServiceBuilderAction.removeFile(inputFile)
+                                if (destFile.exists()) {
+                                    FileUtils.forceDelete(destFile)
+                                }
+                            }
+                            else -> {
+                            }
+                        }
+                    }
+
                 } else {
-                    mServiceBuilderAction.loadDirectory(dirInput.file)
+                    transformDir(dirInput, destDir)
                 }
-                FileUtils.copyDirectory(dirInput.file, destDir)
             }
         }
         mRegistryQualifiedContent?.let { input ->
@@ -86,6 +119,29 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
         }
 
         mProject.logger.info("==================================> Service builder work finish <=======================================")
+    }
+
+    private fun transformDir(
+        dirInput: DirectoryInput,
+        destDir: File?
+    ) {
+        mServiceBuilderAction.loadFile(dirInput.file)
+        FileUtils.copyDirectory(dirInput.file, destDir)
+    }
+
+    private fun transformFile(inputFile: File, destFile: File, change: Boolean = false) {
+        mServiceBuilderAction.loadFile(inputFile, change)
+        FileUtils.copyFile(inputFile, destFile)
+    }
+
+    private fun transformJar(jarInput: JarInput, dest: File?, change: Boolean = false) {
+        if (mServiceBuilderAction.loadJar(JarFile(jarInput.file), change)) {
+            mRegistryQualifiedContent = jarInput
+            mRegistryOutFile = dest
+        } else {
+            FileUtils.copyFile(jarInput.file, dest)
+            mProject.logger.info("scan file:\t ${jarInput.file} status:${jarInput.status}")
+        }
     }
 
     private fun registryServiceBuilderInJar(input: JarInput) {
@@ -102,7 +158,7 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
                     jarOutputStream.putNextEntry(JarEntry(mServiceBuilderAction.mRegistryFilePath))
                     jarOutputStream.write(bytes)
                 } else {
-                    jarOutputStream.putNextEntry(JarEntry(nextElement))
+                    jarOutputStream.putNextEntry(JarEntry(nextElement.name))
                     jarOutputStream.write(streamToByte(jarFile.getInputStream(nextElement)))
                 }
             }
@@ -110,6 +166,7 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
             throw e
         } catch (e: Exception) {
             mProject.logger.error("registry service builder in jar fail: ${e.message}")
+            throw e
         } finally {
             jarOutputStream?.let {output ->
                 try {
@@ -129,10 +186,14 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
             while ({ len = inputStream.read(buffer); len }() != -1) {
                 outSteam.write(buffer, 0, len)
             }
-            outSteam.close()
-            inputStream.close()
         } catch (e: IOException) {
-            e.printStackTrace()
+            throw e
+        } finally {
+            try {
+                outSteam.close()
+                inputStream.close()
+            } catch (e: IOException) {
+            }
         }
 
         return outSteam.toByteArray()
