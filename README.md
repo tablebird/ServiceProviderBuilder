@@ -16,8 +16,8 @@
 在模块的`build.gradle`添加：
 ```groovy
 dependencies {
-    implementation 'com.github.tablebird:service-provider-builder:0.2.0'
-    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.2'
+    implementation 'com.github.tablebird:service-provider-builder:0.2.4'
+    annotationProcessor 'com.github.tablebird:service-provider-builder-compiler:0.2.4'
 }
 ```
 如果使用**Kotlin**则添加：
@@ -25,8 +25,8 @@ dependencies {
 apply plugin: 'kotlin-kapt'
 dependencies {
 	...
-	implementation 'com.github.tablebird:service-provider-builder:0.2.2'
-	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.2'
+	implementation 'com.github.tablebird:service-provider-builder:0.2.4'
+	kapt 'com.github.tablebird:service-provider-builder-compiler:0.2.4'
 }
 ```
 在**application**模块`build.gradle`前添加如下代码可以在编译期提前注册`ServiceBuilder`加快运行速度：
@@ -39,7 +39,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.2"
+        classpath "com.github.tablebird:service-provider-builder-gradle-plugin:0.2.4"
     }
 }
 apply plugin: 'com.github.tablebird.serviceproviderbuilder'

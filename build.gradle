@@ -6,7 +6,7 @@ buildscript {
             'compileSdkVersion': 29,
             'buildToolsVersion': "29.0.2",
             'targetSdkVersion' : 29,
-            'release'          : '0.2.3',
+            'release'          : '0.2.4',
             'kotlin'           : '1.4.21',
             'gradle'           : '4.1.1'
     ]
@@ -14,7 +14,7 @@ buildscript {
             'android' : [
                     'gradlePlugin': "com.android.tools.build:gradle:${versions.gradle}",
             ],
-            'javassist' : 'org.javassist:javassist:3.18.2-GA',
+            'javassist' : 'org.javassist:javassist:3.27.0-GA',
             'junit'   : 'junit:junit:4.12',
             'androidx': [
                     'annotations': "androidx.annotation:annotation:1.0.0",

@@ -42,6 +42,10 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
     var mRegistryFilePath: String? = null
         private set
 
+    init {
+        reset()
+    }
+
     private fun reset() {
         mPool = ServiceBuilderClassPool(true)
         mBuilders.clear()
@@ -177,9 +181,14 @@ open class ServiceBuilderAction constructor(private val mProject: Project) {
         val attribute =
             classFile.getAttribute(AnnotationsAttribute.visibleTag) as AnnotationsAttribute
         val annotation = attribute.getAnnotation(ServiceProvider::class.java.name)
-        val serviceProviderPolicy = annotation.getMemberValue(ServiceProvider::value.name) as EnumMemberValue
+        val memberValue = annotation.getMemberValue(ServiceProvider::value.name)
         val element = getElement(ctClass.name)
-        element.isSingle = serviceProviderPolicy.value == ServiceProviderPolicy.SINGLE.name
+        element.isSingle = if (memberValue == null) {
+            false
+        } else {
+            val serviceProviderPolicy = memberValue as EnumMemberValue
+            serviceProviderPolicy.value == ServiceProviderPolicy.SINGLE.name
+        }
     }
 
     private fun anaylizeBuilderClass(ctClass: CtClass) {

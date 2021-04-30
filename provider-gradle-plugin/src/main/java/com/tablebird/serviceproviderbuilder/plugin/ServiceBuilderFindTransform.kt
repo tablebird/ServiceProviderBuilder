@@ -42,9 +42,12 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
         mProject.logger.info("==================================> Service builder start working <=======================================")
         val incremental = transformInvocation.isIncremental
         if (!incremental) {
+            transformInvocation.outputProvider.deleteAll()
             mServiceBuilderAction.clearCache()
             mRegistryQualifiedContent = null
             mRegistryOutFile = null
+        } else {
+            deleteOldRegistryFile()
         }
         mServiceBuilderAction.setTempDir(transformInvocation.context.temporaryDir)
         transformInvocation.inputs.forEach { input ->
@@ -64,8 +67,8 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
                         Status.REMOVED -> {
                             if (dest.exists()) {
                                 FileUtils.forceDelete(dest)
+                                mServiceBuilderAction.removeJar(JarFile(dest))
                             }
-                            mServiceBuilderAction.removeJar(JarFile(jarInput.file))
                         }
                         else -> {
                         }
@@ -95,8 +98,8 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
                                 transformFile(inputFile, destFile, status == Status.CHANGED)
                             }
                             Status.REMOVED -> {
-                                mServiceBuilderAction.removeFile(inputFile)
                                 if (destFile.exists()) {
+                                    mServiceBuilderAction.removeFile(destFile)
                                     FileUtils.forceDelete(destFile)
                                 }
                             }
@@ -144,6 +147,13 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
         }
     }
 
+    private fun deleteOldRegistryFile() {
+        if (mRegistryOutFile?.exists() == true) {
+            FileUtils.forceDelete(mRegistryOutFile)
+        }
+    }
+
+    @Throws(GradleException::class)
     private fun registryServiceBuilderInJar(input: JarInput) {
         val jarFile = JarFile(input.file)
         val entries = jarFile.entries()
@@ -165,8 +175,9 @@ open class ServiceBuilderFindTransform constructor(private val mProject: Project
         } catch (e: GradleException){
             throw e
         } catch (e: Exception) {
-            mProject.logger.error("registry service builder in jar fail: ${e.message}")
-            throw e
+            val message = "registry service builder in jar fail: ${e.message}"
+            mProject.logger.error(message)
+            throw GradleException(e.message ?: message)
         } finally {
             jarOutputStream?.let {output ->
                 try {
